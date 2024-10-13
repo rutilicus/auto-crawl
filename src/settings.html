@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto Crawl設定</title>
+  <link rel="stylesheet" href="settings.css" type="text/css">
+</head>
+<body>
+  <div class="header">
+    <button id="saveBtn" type="button">保存</button>
+    <button id="exportBtn" type="button">エクスポート</button>
+    <button id="importBtn" type="button">インポート</button>
+    <input id="importFile" type="file" accept="application/json,.json" />
+  </div>
+  <div id="content">
+    <div class="labelInput">
+      <label>デフォルトURL:</label>
+      <input id="defaultUrl" type="url" name="defaultUrl">
+    </div>
+    <div class="labelInput">
+      <label>UA:</label>
+      <input id="defaultUa" type="text" name="defaultUa">
+    </div>
+    <div id="itemArray" class="itemArray"></div>
+    <button id="addBtn" type="button">項目追加</button>
+  </div>
+  <script src="settings.js"></script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+@charset "utf-8";
+
+.header {
+  display: flex;
+  width: 100%;
+}
+
+.labelInput {
+  display: flex;
+}
+
+
+.labelInput > input {
+  flex-grow: 1;
+}
+
+.item {
+  border-top: 2px solid;
+  margin-top: 2px;
+  padding-top: 2px;
+}
+
+input[type=file] {
+  display: none;
+}
