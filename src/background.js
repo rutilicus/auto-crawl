@@ -3,8 +3,10 @@ let crawlTabId = 0;
 let currentUa = "";
 let pageQueue = [];
 let addQueueTimers = [];
+let resetTimers = [];
 let tabTimeoutTimerId = 0;
 let isDefaultPage = false;
+let isResetTab = false;
 
 function resetCrawlData() {
   crawlTabId = 0;
@@ -15,6 +17,8 @@ function resetCrawlData() {
   if (tabTimeoutTimerId != 0) {
     clearTimeout(tabTimeoutTimerId);
   }
+  resetTimers.forEach((timerId) => clearTimeout(timerId));
+  resetTimers = [];
   tabTimeoutTimerId = 0;
 }
 
@@ -52,6 +56,32 @@ function setAddQueTimer(pageInfo) {
   addQueueTimers.push({timerId: timerId, pageInfo: pageInfo});
 }
 
+function resetTab() {
+  isResetTab = true;
+  browser.tabs.remove(crawlTabId);
+}
+
+function setResetTimer(resetInfo) {
+  // 次の時刻にリセットタイマーを設定
+  const hh = parseInt(resetInfo.hh, 10);
+  const mm = parseInt(resetInfo.mm, 10);
+
+  let date = new Date();
+  date.setSeconds(0);
+  date.setMinutes(mm);
+  date.setHours(hh);
+
+  if (date <= new Date()) {
+    // 現時刻より前になる場合は24時間後
+    date.setHours(date.getHours() + 24);
+  }
+
+  const timerId = setTimeout(() => {
+    resetTab();
+  }, date - new Date());
+  resetTimers.push(timerId);
+}
+
 function openPage() {
   // ストレージからデータ読み込み
   browser.storage.local.get().then((result) => {
@@ -67,7 +97,12 @@ function openPage() {
       const pageInfo = result.pageInfo ? JSON.parse(result.pageInfo) : [];
       for (let i in pageInfo) {
         setAddQueTimer(Object.assign({id: i}, pageInfo[i]));
-      }  
+      }
+
+      const resetInfo = result.resetInfo ? JSON.parse(result.resetInfo) : [];
+      for (let i in resetInfo) {
+        setResetTimer(resetInfo[i]);
+      }
     });
   });
 }
@@ -75,6 +110,11 @@ function openPage() {
 function handleRemoved(tabId, removeInfo) {
   if (tabId == crawlTabId) {
     resetCrawlData();
+    if (isResetTab) {
+      // タブリセットにより閉じられた場合は再度開く
+      isResetTab = false;
+      openPage();
+    }
   }
 }
 

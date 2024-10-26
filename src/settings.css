@@ -14,7 +14,7 @@
   flex-grow: 1;
 }
 
-.item {
+.item,.resetItem {
   border-top: 2px solid;
   margin-top: 2px;
   padding-top: 2px;

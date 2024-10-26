@@ -1,9 +1,13 @@
-const fileVersion = 1;
+const fileVersion = 2;
 
 function deleteItem(id) {
   if (document.getElementsByClassName("item").length > 1) {
     document.getElementById(id).remove();
   }
+}
+
+function deleteResetItem(id) {
+  document.getElementById(id).remove();
 }
 
 function createItemRow(url, ua, interval, offset, timeout, id) {
@@ -88,6 +92,36 @@ function createItemRow(url, ua, interval, offset, timeout, id) {
   return itemRowElem;
 }
 
+function createResetItemRow(hh, mm, id) {
+  const itemRowElem = document.createElement("div");
+  itemRowElem.className = "resetItem";
+  itemRowElem.id = id;
+
+  const resetDivElem = document.createElement("div");
+  resetDivElem.className = "labelInput";
+  itemRowElem.appendChild(resetDivElem);
+  const resetLabelElem = document.createElement("label");
+  resetLabelElem.for = "reset";
+  resetLabelElem.textContent = "リセット時刻:";
+  resetDivElem.appendChild(resetLabelElem);
+  const resetInputElem = document.createElement("input");
+  resetInputElem.type = "time";
+  resetInputElem.name = "reset";
+  resetInputElem.value = `${hh}:${mm}`;
+  resetDivElem.appendChild(resetInputElem);
+
+  const btnRowElem = document.createElement("div");
+  btnRowElem.className = "btnRow";
+  itemRowElem.appendChild(btnRowElem);
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.textContent = "Delete"
+  deleteBtn.addEventListener("click", () => deleteResetItem(id));
+  btnRowElem.appendChild(deleteBtn);
+
+  return itemRowElem;
+}
+
 function addItemRow(pageInfo) {
   let maxId = 0;
   const itemRows = document.getElementsByClassName("item");
@@ -106,11 +140,34 @@ function addNewItemRow() {
   );
 }
 
+function addResetItemRow(pageInfo) {
+  let maxId = 0;
+  const itemRows = document.getElementsByClassName("resetItem");
+  for (let i = 0; i < itemRows.length; i++) {
+    // IDの"reset"より後を読み込み
+    maxId = Math.max(maxId, parseInt(itemRows[i].id.substring(5), 10));
+  }
+
+  document.getElementById("resetItemArray").appendChild(
+    createResetItemRow(pageInfo.hh, pageInfo.mm, `reset${maxId + 1}`)
+  );
+}
+
+function addNewResetItemRow() {
+  addResetItemRow(
+    {hh: "00", mm: "00"}
+  );
+}
+
 function setPageContent() {
   // 最初に全部取り除く
   const itemArray = document.getElementById("itemArray");
   while (itemArray.firstChild) {
     itemArray.removeChild(itemArray.firstChild);
+  }
+  const resetItemArray = document.getElementById("resetItemArray");
+  while (resetItemArray.firstChild) {
+    resetItemArray.removeChild(resetItemArray.firstChild);
   }
   document.getElementById("defaultUrl").value = "";
   document.getElementById("defaultUa").value = "";
@@ -125,6 +182,10 @@ function setPageContent() {
     const pageInfoArray = result.pageInfo ? JSON.parse(result.pageInfo) : [];
     for (let i in pageInfoArray) {
       addItemRow(pageInfoArray[i]);
+    }
+    const resetInfoArray = result.resetInfo ? JSON.parse(result.resetInfo) : [];
+    for (let i in resetInfoArray) {
+      addResetItemRow(resetInfoArray[i]);
     }
   });
 }
@@ -151,6 +212,17 @@ function savePageData() {
     pageInfo.push(itemData);
   }
   newData.pageInfo = JSON.stringify(pageInfo);
+  const resetInfo = [];
+  const resetElems = document.querySelectorAll(".resetItem");
+  for (let i = 0; i < resetElems.length; i++) {
+    const itemData = new Object();
+    const resetTimeStr = resetElems[i].querySelector("input[name=reset]").value;
+    itemData.hh = resetTimeStr.substring(0, 2);
+    itemData.mm = resetTimeStr.substring(3);
+
+    resetInfo.push(itemData);
+  }
+  newData.resetInfo = JSON.stringify(resetInfo);
 
   browser.storage.local.set(newData);
 }
@@ -164,6 +236,7 @@ function exportJson() {
     exportData.defaultUrl = result.defaultUrl ? result.defaultUrl : "";
     exportData.defaultUa = result.defaultUa ? result.defaultUa : "";
     exportData.pageInfo = result.pageInfo ? JSON.parse(result.pageInfo) : [];
+    exportData.resetInfo = result.resetInfo ? JSON.parse(result.resetInfo) : [];
     a.href = URL.createObjectURL(new Blob([JSON.stringify(exportData)],
                                           { type: "application/json"}));
     a.download = current.getFullYear().toString() + current.getMonth() + current.getDate()
@@ -187,6 +260,7 @@ async function importFileLoad(event) {
     saveData.defaultUrl = readData.defaultUrl ? readData.defaultUrl : "";
     saveData.defaultUa = readData.defaultUa ? readData.defaultUa : "";
     saveData.pageInfo = readData.pageInfo ? JSON.stringify(readData.pageInfo) : "[]";
+    saveData.resetInfo = readData.resetInfo ? JSON.stringify(readData.resetInfo) : "[]";
     browser.storage.local.set(saveData);
 
     // 読み込んだらページ再設定
@@ -196,6 +270,7 @@ async function importFileLoad(event) {
 
 document.getElementById("saveBtn").addEventListener("click", savePageData);
 document.getElementById("addBtn").addEventListener("click", addNewItemRow);
+document.getElementById("resetAddBtn").addEventListener("click", addNewResetItemRow);
 document.getElementById("exportBtn").addEventListener("click", exportJson);
 document.getElementById("importBtn").addEventListener("click", importJson);
 document.getElementById("importFile").addEventListener("change", importFileLoad);
