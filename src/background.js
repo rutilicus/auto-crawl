@@ -39,7 +39,7 @@ function setAddQueTimer(pageInfo) {
   const date = new Date();
   date.setSeconds(0);
   date.setMinutes(0);
-  date.setHours(Math.floor((date.getHours() + pageInfo.interval) / pageInfo.interval) * pageInfo.interval + pageInfo.offset);
+  date.setHours(Math.floor((date.getHours() + pageInfo.interval - pageInfo.offset) / pageInfo.interval) * pageInfo.interval + pageInfo.offset);
   
   const timerId = setTimeout(() => {
     pageQueue.push(pageInfo);
