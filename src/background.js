@@ -5,7 +5,6 @@ let pageQueue = [];
 let addQueueTimers = [];
 let resetTimers = [];
 let tabTimeoutTimerId = 0;
-let isDefaultPage = false;
 let isResetTab = false;
 
 function resetCrawlData() {
@@ -23,19 +22,27 @@ function resetCrawlData() {
 }
 
 function setPageQueueTop() {
-  if (pageQueue.length == 0) {
-    browser.tabs.update(crawlTabId, {url: defaultPageData.url});
-    currentUa = defaultPageData.ua;
-    isDefaultPage = true;
-  } else {
-    const pageInfo = pageQueue.shift();
-    browser.tabs.update(crawlTabId, {url: pageInfo.url});
-    currentUa = pageInfo.ua;
-    isDefaultPage = false;
-    tabTimeoutTimerId = setTimeout(() => {
-      setPageQueueTop();
-    }, pageInfo.timeout * 1000);
+  if (crawlTabId != 0) {
+    const prevTabId = crawlTabId;
+    crawlTabId = 0;
+    browser.tabs.remove(prevTabId);
   }
+
+  browser.tabs.create({}).then((tab) => {
+    crawlTabId = tab.id;
+
+    if (pageQueue.length == 0) {
+      currentUa = defaultPageData.ua;
+      browser.tabs.update(crawlTabId, {url: defaultPageData.url});
+    } else {
+      const pageInfo = pageQueue.shift();
+      currentUa = pageInfo.ua;
+      browser.tabs.update(crawlTabId, {url: pageInfo.url});
+      tabTimeoutTimerId = setTimeout(() => {
+        setPageQueueTop();
+      }, pageInfo.timeout * 1000);
+    }
+  });
 }
 
 function setAddQueTimer(pageInfo) {
@@ -47,7 +54,7 @@ function setAddQueTimer(pageInfo) {
   
   const timerId = setTimeout(() => {
     pageQueue.push(pageInfo);
-    if (isDefaultPage) {
+    if (pageQueue.length == 1) {
       setPageQueueTop();
     }
     addQueueTimers = addQueueTimers.filter(timerInfo => timerInfo.pageInfo.id != pageInfo.id);
@@ -87,23 +94,22 @@ function openPage() {
   browser.storage.local.get().then((result) => {
     // 設定前に一度リセット
     resetCrawlData();
+
+    // デフォルトページ表示
     defaultPageData.url = result.defaultUrl || "";
     defaultPageData.ua = result.defaultUa || "";
+    setPageQueueTop();
 
-    browser.tabs.create({url: defaultPageData.url}).then((tab) => {
-      isDefaultPage = true;
-      crawlTabId = tab.id;
+    // 各種タイマー設定
+    const pageInfo = result.pageInfo ? JSON.parse(result.pageInfo) : [];
+    for (let i in pageInfo) {
+      setAddQueTimer(Object.assign({id: i}, pageInfo[i]));
+    }
 
-      const pageInfo = result.pageInfo ? JSON.parse(result.pageInfo) : [];
-      for (let i in pageInfo) {
-        setAddQueTimer(Object.assign({id: i}, pageInfo[i]));
-      }
-
-      const resetInfo = result.resetInfo ? JSON.parse(result.resetInfo) : [];
-      for (let i in resetInfo) {
-        setResetTimer(resetInfo[i]);
-      }
-    });
+    const resetInfo = result.resetInfo ? JSON.parse(result.resetInfo) : [];
+    for (let i in resetInfo) {
+      setResetTimer(resetInfo[i]);
+    }
   });
 }
 
