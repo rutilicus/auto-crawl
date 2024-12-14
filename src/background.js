@@ -6,6 +6,7 @@ let addQueueTimers = [];
 let resetTimers = [];
 let tabTimeoutTimerId = 0;
 let isResetTab = false;
+let isDefaultPage = true;
 
 function resetCrawlData() {
   crawlTabId = 0;
@@ -32,9 +33,11 @@ function setPageQueueTop() {
     crawlTabId = tab.id;
 
     if (pageQueue.length == 0) {
+      isDefaultPage = true;
       currentUa = defaultPageData.ua;
       browser.tabs.update(crawlTabId, {url: defaultPageData.url});
     } else {
+      isDefaultPage = false;
       const pageInfo = pageQueue.shift();
       currentUa = pageInfo.ua;
       browser.tabs.update(crawlTabId, {url: pageInfo.url});
@@ -54,7 +57,7 @@ function setAddQueTimer(pageInfo) {
   
   const timerId = setTimeout(() => {
     pageQueue.push(pageInfo);
-    if (pageQueue.length == 1) {
+    if (pageQueue.length == 1 && isDefaultPage) {
       setPageQueueTop();
     }
     addQueueTimers = addQueueTimers.filter(timerInfo => timerInfo.pageInfo.id != pageInfo.id);
